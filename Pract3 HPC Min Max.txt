@@ -1,0 +1,28 @@
+#python program for min max
+
+import multiprocessing
+import random
+
+def parallel_reduction(operation, arr):
+    with multiprocessing.Pool() as pool:
+        if operation == "min":
+            return min(pool.map(min, arr))
+        elif operation == "max":
+            return max(pool.map(max, arr))
+        elif operation == "sum":
+            return sum(pool.map(sum, arr))
+        # elif operation == "avg":
+        #     return sum(pool.map(sum, arr)) / len(arr)
+        elif operation == "avg":
+          total_sum = sum(pool.map(sum,arr))
+          total_count = sum(len(chunk) for chunk in arr)
+          return total_sum / total_count
+
+if __name__ == "__main__":
+    arr = [random.randint(0,10000) for _ in range(10000)]
+    chunked_arr = [arr[i::multiprocessing.cpu_count()] for i in range(multiprocessing.cpu_count())]
+
+    print(f"Min: {parallel_reduction('min', chunked_arr)}")
+    print(f"Max: {parallel_reduction('max', chunked_arr)}")
+    print(f"Sum: {parallel_reduction('sum', chunked_arr)}")
+    print(f"Avg: {parallel_reduction('avg', chunked_arr)}")
