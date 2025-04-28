@@ -1,0 +1,102 @@
+#include <iostream>
+#include <vector>
+#include <stack>
+#include <omp.h>  // For OpenMP
+using namespace std;
+
+class Tree {
+    int V;  // Number of nodes
+    vector<vector<int>> adj;  // Adjacency list
+public:
+    // Constructor
+    Tree(int V) {
+        this->V = V;
+        adj.resize(V);
+    }
+
+    // Add edge (undirected tree)
+    void addEdge(int u, int v) {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    // Parallel DFS
+    void parallelDFS(int start) {
+        vector<bool> visited(V, false);
+        stack<int> stk;
+
+        stk.push(start);
+        visited[start] = true;
+
+        cout << "Parallel DFS starting from node " << start << ":\n";
+
+        #pragma omp parallel
+        {
+            #pragma omp single
+            {
+                while (!stk.empty()) {
+                    int u;
+
+                    // Only one thread pops from stack
+                    #pragma omp critical
+                    {
+                        if (!stk.empty()) {
+                            u = stk.top();
+                            stk.pop();
+                        } else {
+                            u = -1;
+                        }
+                    }
+
+                    if (u == -1)
+                        continue;
+
+                    cout << u << " ";
+
+                    // Parallel explore neighbors
+                    #pragma omp task firstprivate(u)
+                    {
+                        for (auto v : adj[u]) {
+                            // Visit unvisited neighbors
+                            bool notVisited = false;
+
+                            #pragma omp critical
+                            {
+                                if (!visited[v]) {
+                                    visited[v] = true;
+                                    stk.push(v);
+                                    notVisited = true;
+                                }
+                            }
+
+                            // If visited, skip
+                            if (notVisited) {
+                                // Task created for further exploration
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        cout << endl;
+    }
+};
+
+int main() {
+    // Create a tree with 7 nodes
+    Tree t(7);
+
+    // Build the tree
+    t.addEdge(0, 1);
+    t.addEdge(0, 2);
+    t.addEdge(1, 3);
+    t.addEdge(1, 4);
+    t.addEdge(2, 5);
+    t.addEdge(2, 6);
+
+    // Run parallel DFS
+    t.parallelDFS(0);  // Start DFS from root node 0
+
+    return 0;
+}
